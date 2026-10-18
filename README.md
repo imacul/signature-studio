@@ -6,7 +6,8 @@ Live site: https://studiosign.vercel.app
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss a change or submit a pull request.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to
+fork the repository and submit a pull request. Open an issue to discuss a change.
 Pushing to `main` deploys the latest version through Vercel.
 
 ## License
