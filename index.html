@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signature Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Playfair Display', 'serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Prevent scrolling on canvas drag for mobile touch devices */
+    canvas {
+      touch-action: none;
+    }
+    
+    /* Subtle grid background for transparent canvas feedback */
+    .bg-checkerboard {
+      background-color: #ffffff;
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
+    /* Custom scrollbar for sleek side panels */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Main Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i class="fa-solid me-0.5 fa-signature text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-900 leading-tight">Signature Studio</h1>
+          <p class="text-xs text-slate-500">Draw, refine & export professional digital signatures</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <button id="previewModalBtn" onclick="openPreviewModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium text-sm transition-all shadow-sm active:scale-95">
+          <i class="fa-regular fa-file-lines text-indigo-600"></i>
+          <span>Live Document Preview</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Body Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Left Controls Panel -->
+    <aside class="lg:col-span-4 xl:col-span-3 space-y-5">
+      
+      <!-- Customization Box -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-5">
+        <h2 class="text-sm font-semibold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-indigo-600"></i>
+          Signature Styles
+        </h2>
+
+        <!-- Color Palette -->
+        <div class="space-y-2">
+          <label class="text-xs font-medium text-slate-600 flex justify-between">
+            <span>Ink Color</span>
+            <span id="currentColorHex" class="text-slate-400 font-mono">#0f172a</span>
+          </label>
+          <div class="flex items-center gap-2.5">
+            <button onclick="setInkColor('#0f172a')" class="color-btn w-8 h-8 rounded-full bg-slate-900 ring-2 ring-indigo-600 ring-offset-2 transition-transform hover:scale-105" data-color="#0f172a" title="Classic Dark"></button>
+            <button onclick="setInkColor('#1e40af')" class="color-btn w-8 h-8 rounded-full bg-blue-800 transition-transform hover:scale-105" data-color="#1e40af" title="Royal Blue"></button>
+            <button onclick="setInkColor('#047857')" class="color-btn w-8 h-8 rounded-full bg-emerald-700 transition-transform hover:scale-105" data-color="#047857" title="Forest Green"></button>
+            <button onclick="setInkColor('#b91c1c')" class="color-btn w-8 h-8 rounded-full bg-red-700 transition-transform hover:scale-105" data-color="#b91c1c" title="Crimson"></button>
+            
+            <div class="relative flex items-center justify-center w-8 h-8 rounded-full border border-slate-300 hover:border-slate-400 cursor-pointer overflow-hidden group">
+              <input type="color" id="customColorPicker" value="#0f172a" onchange="setInkColor(this.value)" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+              <i class="fa-solid fa-palette text-slate-500 group-hover:text-slate-700 text-xs"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Thickness Slider -->
+        <div class="space-y-2">
+          <div class="flex justify-between text-xs font-medium text-slate-600">
+            <span>Stroke Thickness</span>
+            <span id="thicknessValue" class="text-slate-900 font-semibold">3 px</span>
+          </div>
+          <input type="range" id="thicknessRange" min="1" max="10" step="0.5" value="3" oninput="updateThickness(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+          <div class="flex justify-between text-[10px] text-slate-400 px-0.5">
+            <span>Fine (1px)</span>
+            <span>Medium (5px)</span>
+            <span>Bold (10px)</span>
+          </div>
+        </div>
+
+        <!-- Baseline Switch -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium text-slate-700 block">Baseline Guide</span>
+            <span class="text-[11px] text-slate-400 block">Show helper line on canvas</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="baselineToggle" checked onchange="toggleBaseline()" class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          </label>
+        </div>
+
+        <!-- Canvas Background Selector -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <label class="text-xs font-medium text-slate-600 block">Canvas Backdrop</label>
+          <div class="grid grid-cols-4 gap-2">
+            <button onclick="setCanvasBg('transparent')" id="bgBtn-transparent" class="bg-option-btn text-xs py-1.5 px-2 rounded-lg border border-indigo-600 bg-indigo-50/50 text-indigo-700 font-medium text-center">Clear</button>
+            <button onclick="setCanvasBg('white')" id="bgBtn-white" class="bg-option-btn text-xs py-1.5 px-2 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-center">White</button>
+            <button onclick="setCanvasBg('parchment')" id="bgBtn-parchment" class="bg-option-btn text-xs py-1.5 px-2 rounded-lg border border-slate-200 bg-[#fbf8ef] text-amber-900 hover:opacity-90 text-center">Warm</button>
+            <button onclick="setCanvasBg('dark')" id="bgBtn-dark" class="bg-option-btn text-xs py-1.5 px-2 rounded-lg border border-slate-800 bg-slate-900 text-slate-100 hover:bg-slate-800 text-center">Dark</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Export Settings Panel -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <h2 class="text-sm font-semibold text-slate-900 tracking-wide uppercase flex items-center gap-2">
+          <i class="fa-solid fa-download text-indigo-600"></i>
+          Export Preferences
+        </h2>
+
+        <!-- HD Resolution Scaling -->
+        <div class="space-y-2">
+          <label class="text-xs font-medium text-slate-600 block">Output Scale (Resolution)</label>
+          <div class="grid grid-cols-3 gap-2">
+            <button onclick="setResolutionScale(1)" id="scaleBtn-1" class="scale-btn text-xs py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium">1x (Std)</button>
+            <button onclick="setResolutionScale(2)" id="scaleBtn-2" class="scale-btn text-xs py-1.5 rounded-lg border border-indigo-600 bg-indigo-50/50 text-indigo-700 font-medium">2x (HD)</button>
+            <button onclick="setResolutionScale(3)" id="scaleBtn-3" class="scale-btn text-xs py-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-medium">3x (Ultra)</button>
+          </div>
+        </div>
+
+        <!-- Trim Padding Toggle -->
+        <div class="flex items-center justify-between text-xs font-medium text-slate-700 pt-1">
+          <span>Auto-Crop Empty Margins</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="autoCropToggle" checked class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+          </label>
+        </div>
+
+        <!-- Action Export Buttons -->
+        <div class="space-y-2 pt-2">
+          <button onclick="exportSignature('png')" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-sm transition-all active:scale-[0.98]">
+            <i class="fa-solid fa-file-image"></i>
+            <span>Download PNG (Transparent)</span>
+          </button>
+
+          <button onclick="exportSignature('jpeg')" class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white font-medium text-sm rounded-xl shadow-sm transition-all active:scale-[0.98]">
+            <i class="fa-solid fa-file-jpg"></i>
+            <span>Download JPEG (White Backing)</span>
+          </button>
+
+          <button onclick="copyToClipboard()" class="w-full flex items-center justify-center gap-2 py-2 px-4 border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium text-sm rounded-xl transition-all active:scale-[0.98]">
+            <i class="fa-regular fa-copy"></i>
+            <span id="copyBtnText">Copy Image to Clipboard</span>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Main Canvas Area -->
+    <section class="lg:col-span-8 xl:col-span-9 space-y-4">
+      
+      <!-- Signature Pad Container -->
+      <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        
+        <!-- Canvas Top Toolbar -->
+        <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+          <div class="flex items-center gap-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Active Pad</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="undoStroke()" id="undoBtn" disabled class="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:text-slate-400 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs font-medium flex items-center gap-1.5 shadow-2xs" title="Undo Last Stroke">
+              <i class="fa-solid fa-rotate-left"></i>
+              <span class="hidden sm:inline">Undo</span>
+            </button>
+
+            <button onclick="redoStroke()" id="redoBtn" disabled class="p-2 text-slate-400 hover:text-slate-700 disabled:opacity-40 disabled:hover:text-slate-400 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-all text-xs font-medium flex items-center gap-1.5 shadow-2xs" title="Redo Stroke">
+              <i class="fa-solid fa-rotate-right"></i>
+              <span class="hidden sm:inline">Redo</span>
+            </button>
+
+            <div class="h-4 w-px bg-slate-300 mx-1"></div>
+
+            <button onclick="clearCanvas()" class="py-1.5 px-3 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg border border-red-200 bg-white transition-all text-xs font-semibold flex items-center gap-1.5 shadow-2xs">
+              <i class="fa-regular fa-trash-can"></i>
+              <span>Clear Pad</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Canvas Viewport -->
+        <div id="canvasWrapper" class="relative w-full h-[420px] sm:h-[480px] bg-checkerboard flex items-center justify-center p-4 select-none">
+          
+          <canvas id="signatureCanvas" class="w-full h-full rounded-xl cursor-crosshair border border-slate-200/80 shadow-inner bg-transparent transition-colors"></canvas>
+
+          <!-- Empty Canvas Callout Prompt -->
+          <div id="canvasPlaceholder" class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-slate-300 space-y-2">
+            <i class="fa-solid fa-pen-nib text-4xl mb-1 opacity-60"></i>
+            <p class="text-sm font-medium text-slate-400">Sign your name here using mouse or touch</p>
+          </div>
+        </div>
+
+        <!-- Canvas Footer Stats -->
+        <div class="px-5 py-2.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center gap-3">
+            <span>Strokes: <strong id="strokeCount" class="text-slate-600 font-medium">0</strong></span>
+            <span>•</span>
+            <span id="canvasDimensions">1000 x 500 px</span>
+          </div>
+          <span class="hidden sm:inline">Smooth Vector Paths Enabled</span>
+        </div>
+
+      </div>
+
+      <!-- Quick Guidance Tips -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+            <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold text-slate-800">Auto-Smoothing</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Lines seamlessly soften jitter while keeping your stroke dynamic.</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+            <i class="fa-solid fa-crop-simple text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold text-slate-800">Smart Bounding Box</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Exports are auto-trimmed so signatures fit nicely onto contracts.</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-start gap-3">
+          <div class="p-2 bg-amber-50 text-amber-600 rounded-lg">
+            <i class="fa-solid fa-shield-halved text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold text-slate-800">100% Client-Side</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Your signature never leaves your browser for ultimate privacy.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Live Document Preview Modal -->
+  <div id="previewModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-file-signature text-indigo-600 text-lg"></i>
+          <h3 class="font-bold text-slate-900 text-base">Document Preview</h3>
+        </div>
+        <button onclick="closePreviewModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition-all">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Mock Agreement Document) -->
+      <div class="p-6 sm:p-10 overflow-y-auto flex-1 bg-slate-100 flex justify-center">
+        
+        <div class="bg-white w-full max-w-2xl p-8 sm:p-12 shadow-md rounded-sm border border-slate-200 font-serif space-y-6 text-slate-800 text-sm leading-relaxed relative">
+          
+          <div class="border-b border-slate-300 pb-4 flex justify-between items-start">
+            <div>
+              <h4 class="font-bold text-xl tracking-tight text-slate-900">SERVICE AGREEMENT</h4>
+              <p class="text-xs font-sans text-slate-400 mt-1">Ref ID: #SIG-2026-9042</p>
+            </div>
+            <div class="text-right text-xs font-sans text-slate-500">
+              <p>Effective Date: Oct 18, 2026</p>
+              <p class="font-semibold text-emerald-600 mt-0.5">● Ready for Execution</p>
+            </div>
+          </div>
+
+          <p class="text-xs font-sans leading-normal text-slate-600">
+            This Non-Disclosure & Service Authorization Document confirms that the undersigned party agrees to the standard terms and digital record standards. The signature affixed below serves as an official legal acknowledgment.
+          </p>
+
+          <div class="p-4 bg-slate-50 rounded border border-slate-200 text-xs font-sans space-y-1.5">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Signatory Party:</span>
+              <span class="font-semibold text-slate-800">Authorized User</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Verification Method:</span>
+              <span class="font-semibold text-slate-800">HTML5 Canvas Capture</span>
+            </div>
+          </div>
+
+          <!-- Document Signature Block -->
+          <div class="pt-8 mt-8 border-t border-slate-200 grid grid-cols-2 gap-8 font-sans">
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Issued By</p>
+              <div class="h-16 flex items-end border-b border-slate-400 pb-1">
+                <span class="font-serif italic text-slate-700 text-lg">Signature Studio Corp.</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">System Administrator</p>
+            </div>
+
+            <div>
+              <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Accepted & Signed</p>
+              <!-- Signature Image Rendering Destination -->
+              <div class="h-20 border-b border-slate-400 relative flex items-end pb-1 bg-indigo-50/20 rounded-t px-2">
+                <img id="modalSignatureImage" src="" alt="Live Signature Preview" class="max-h-full max-w-full object-contain mb-1">
+                <span id="modalEmptyNotice" class="absolute inset-0 flex items-center justify-center text-xs text-slate-400 italic">No signature drawn yet</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">Authorized Representative</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 flex justify-end gap-3">
+        <button onclick="closePreviewModal()" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 rounded-lg text-slate-700 font-medium text-sm transition-all">
+          Close
+        </button>
+        <button onclick="exportSignature('png'); closePreviewModal();" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-all shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-download text-xs"></i>
+          <span>Export Signature</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-medium">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+    <span id="toastMessage">Action completed</span>
+  </div>
+
+  <!-- Main JavaScript Logic -->
+  <script>
+    // App State Configuration
+    const state = {
+      inkColor: '#0f172a',
+      thickness: 3,
+      showBaseline: true,
+      canvasBg: 'transparent',
+      resolutionScale: 2,
+      strokes: [],      // Completed paths
+      redoStack: [],    // Undone paths
+      currentStroke: [] // Points in current drawing action
+    };
+
+    let canvas, ctx;
+    let isDrawing = false;
+    let lastPoint = null;
+
+    // Initialize Canvas on Page Load
+    window.addEventListener('load', () => {
+      canvas = document.getElementById('signatureCanvas');
+      ctx = canvas.getContext('2d');
+
+      // Setup Resolution & Resize Listener
+      resizeCanvas();
+      window.addEventListener('resize', debounce(resizeCanvas, 200));
+
+      // Pointer & Mouse Event Listeners for Drawing
+      canvas.addEventListener('pointerdown', handlePointerDown);
+      canvas.addEventListener('pointermove', handlePointerMove);
+      canvas.addEventListener('pointerup', handlePointerUp);
+      canvas.addEventListener('pointerleave', handlePointerUp);
+      canvas.addEventListener('pointercancel', handlePointerUp);
+
+      // Render Initial State
+      redrawCanvas();
+    });
+
+    // Resize canvas based on container dimensions without distorting resolution
+    function resizeCanvas() {
+      const wrapper = document.getElementById('canvasWrapper');
+      const rect = wrapper.getBoundingClientRect();
+      
+      // Keep logical drawing dimensions
+      const width = rect.width - 32;  // subtract padding
+      const height = rect.height - 32;
+
+      // Avoid resetting canvas pixels if unchanged
+      if (canvas.width !== width || canvas.height !== height) {
+        // Save current contents
+        const tempStrokes = [...state.strokes];
+        
+        canvas.width = width;
+        canvas.height = height;
+
+        document.getElementById('canvasDimensions').textContent = `${Math.round(width)} x ${Math.round(height)} px`;
+        
+        state.strokes = tempStrokes;
+        redrawCanvas();
+      }
+    }
+
+    // Pointer Handler: Start Drawing
+    function handlePointerDown(e) {
+      if (e.button !== 0 && e.pointerType === 'mouse') return; // Left click only
+      
+      canvas.setPointerCapture(e.pointerId);
+      isDrawing = true;
+      
+      const point = getCanvasCoordinates(e);
+      lastPoint = point;
+      
+      state.currentStroke = [{
+        x: point.x,
+        y: point.y,
+        color: state.inkColor,
+        thickness: state.thickness
+      }];
+
+      // Clear redo stack on new stroke
+      state.redoStack = [];
+      updateUndoRedoUI();
+
+      document.getElementById('canvasPlaceholder').classList.add('hidden');
+    }
+
+    // Pointer Handler: Move / Stroke Continuous Rendering
+    function handlePointerMove(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+
+      const currentPoint = getCanvasCoordinates(e);
+
+      // Append point
+      state.currentStroke.push({
+        x: currentPoint.x,
+        y: currentPoint.y,
+        color: state.inkColor,
+        thickness: state.thickness
+      });
+
+      // Render line segment directly on context for fluid performance
+      ctx.save();
+      ctx.beginPath();
+      
+      // Enforce robust continuous non-dashed stroke properties
+      ctx.setLineDash([]);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = state.inkColor;
+      ctx.lineWidth = state.thickness;
+
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(currentPoint.x, currentPoint.y);
+      ctx.stroke();
+      ctx.restore();
+
+      lastPoint = currentPoint;
+    }
+
+    // Pointer Handler: End Drawing
+    function handlePointerUp(e) {
+      if (!isDrawing) return;
+      isDrawing = false;
+      
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch (err) {
+        // Pointer capture release safety
+      }
+
+      if (state.currentStroke.length > 0) {
+        state.strokes.push([...state.currentStroke]);
+        state.currentStroke = [];
+      }
+
+      redrawCanvas();
+      updateUndoRedoUI();
+    }
+
+    // Get exact canvas coordinates adjusting for scale & position
+    function getCanvasCoordinates(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) * (canvas.width / rect.width),
+        y: (e.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    // Complete Redraw of Canvas
+    function redrawCanvas() {
+      // Clear Context
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Render Background Color if non-transparent
+      if (state.canvasBg === 'white') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (state.canvasBg === 'parchment') {
+        ctx.fillStyle = '#fbf8ef';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (state.canvasBg === 'dark') {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Draw Baseline Guide if enabled
+      if (state.showBaseline) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 6]);
+        ctx.strokeStyle = state.canvasBg === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = 1.5;
+        const baselineY = Math.round(canvas.height * 0.7);
+        ctx.moveTo(30, baselineY);
+        ctx.lineTo(canvas.width - 30, baselineY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Render Saved Strokes with quadratic curve smoothing
+      state.strokes.forEach(stroke => {
+        if (stroke.length === 0) return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([]); // Ensure no dashes
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = stroke[0].color;
+        ctx.lineWidth = stroke[0].thickness;
+
+        if (stroke.length === 1) {
+          // Single Dot
+          ctx.arc(stroke[0].x, stroke[0].y, stroke[0].thickness / 2, 0, Math.PI * 2);
+          ctx.fillStyle = stroke[0].color;
+          ctx.fill();
+        } else {
+          // Multi-point stroke with mid-point smoothing
+          ctx.moveTo(stroke[0].x, stroke[0].y);
+
+          for (let i = 1; i < stroke.length - 1; i++) {
+            const midX = (stroke[i].x + stroke[i + 1].x) / 2;
+            const midY = (stroke[i].y + stroke[i + 1].y) / 2;
+            ctx.quadraticCurveTo(stroke[i].x, stroke[i].y, midX, midY);
+          }
+          
+          // Connect last point
+          ctx.lineTo(stroke[stroke.length - 1].x, stroke[stroke.length - 1].y);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      });
+
+      // Show/Hide Placeholder Callout
+      const placeholder = document.getElementById('canvasPlaceholder');
+      if (state.strokes.length === 0 && !isDrawing) {
+        placeholder.classList.remove('hidden');
+      } else {
+        placeholder.classList.add('hidden');
+      }
+
+      // Update Stroke Stats Counter
+      document.getElementById('strokeCount').textContent = state.strokes.length;
+    }
+
+    // UI Customization Options Controls
+    function setInkColor(hex) {
+      state.inkColor = hex;
+      document.getElementById('currentColorHex').textContent = hex;
+      document.getElementById('customColorPicker').value = hex;
+
+      // Update color button ring active indicators
+      document.querySelectorAll('.color-btn').forEach(btn => {
+        if (btn.getAttribute('data-color') === hex) {
+          btn.classList.add('ring-2', 'ring-indigo-600', 'ring-offset-2');
+        } else {
+          btn.classList.remove('ring-2', 'ring-indigo-600', 'ring-offset-2');
+        }
+      });
+    }
+
+    function updateThickness(val) {
+      state.thickness = parseFloat(val);
+      document.getElementById('thicknessValue').textContent = `${val} px`;
+    }
+
+    function toggleBaseline() {
+      state.showBaseline = document.getElementById('baselineToggle').checked;
+      redrawCanvas();
+    }
+
+    function setCanvasBg(bgType) {
+      state.canvasBg = bgType;
+      
+      // Update UI active button states
+      document.querySelectorAll('.bg-option-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700');
+        btn.classList.add('border-slate-200', 'text-slate-700');
+      });
+
+      const activeBtn = document.getElementById(`bgBtn-${bgType}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-200', 'text-slate-700');
+        activeBtn.classList.add('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700');
+      }
+
+      redrawCanvas();
+    }
+
+    function setResolutionScale(scale) {
+      state.resolutionScale = scale;
+      
+      document.querySelectorAll('.scale-btn').forEach(btn => {
+        btn.classList.remove('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700');
+        btn.classList.add('border-slate-200', 'text-slate-700');
+      });
+
+      const activeBtn = document.getElementById(`scaleBtn-${scale}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-slate-200', 'text-slate-700');
+        activeBtn.classList.add('border-indigo-600', 'bg-indigo-50/50', 'text-indigo-700');
+      }
+    }
+
+    // Undo / Redo / Clear Handlers
+    function undoStroke() {
+      if (state.strokes.length === 0) return;
+      state.redoStack.push(state.strokes.pop());
+      redrawCanvas();
+      updateUndoRedoUI();
+    }
+
+    function redoStroke() {
+      if (state.redoStack.length === 0) return;
+      state.strokes.push(state.redoStack.pop());
+      redrawCanvas();
+      updateUndoRedoUI();
+    }
+
+    function clearCanvas() {
+      if (state.strokes.length === 0) return;
+      state.strokes = [];
+      state.redoStack = [];
+      redrawCanvas();
+      updateUndoRedoUI();
+      showToast('Canvas cleared', 'fa-trash-can');
+    }
+
+    function updateUndoRedoUI() {
+      const undoBtn = document.getElementById('undoBtn');
+      const redoBtn = document.getElementById('redoBtn');
+
+      undoBtn.disabled = state.strokes.length === 0;
+      redoBtn.disabled = state.redoStack.length === 0;
+    }
+
+    // Generator for Trimmed/Cropped HD Export Canvas
+    function generateExportCanvas(format) {
+      if (state.strokes.length === 0) return null;
+
+      const shouldCrop = document.getElementById('autoCropToggle').checked;
+      const scale = state.resolutionScale || 2;
+
+      let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+
+      if (shouldCrop) {
+        // Compute bounding box around strokes
+        state.strokes.forEach(stroke => {
+          stroke.forEach(pt => {
+            const pad = pt.thickness || 5;
+            if (pt.x - pad < minX) minX = pt.x - pad;
+            if (pt.y - pad < minY) minY = pt.y - pad;
+            if (pt.x + pad > maxX) maxX = pt.x + pad;
+            if (pt.y + pad > maxY) maxY = pt.y + pad;
+          });
+        });
+
+        // Add padding around signature
+        const padding = 20;
+        minX = Math.max(0, minX - padding);
+        minY = Math.max(0, minY - padding);
+        maxX = Math.min(canvas.width, maxX + padding);
+        maxY = Math.min(canvas.height, maxY + padding);
+      } else {
+        minX = 0;
+        minY = 0;
+        maxX = canvas.width;
+        maxY = canvas.height;
+      }
+
+      const cropWidth = Math.max(10, maxX - minX);
+      const cropHeight = Math.max(10, maxY - minY);
+
+      // Create offscreen canvas scaled for crisp resolution
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = cropWidth * scale;
+      exportCanvas.height = cropHeight * scale;
+
+      const eCtx = exportCanvas.getContext('2d');
+      eCtx.scale(scale, scale);
+
+      // Fill Background for JPEG or if specific background selected
+      if (format === 'jpeg' || state.canvasBg === 'white') {
+        eCtx.fillStyle = '#ffffff';
+        eCtx.fillRect(0, 0, cropWidth, cropHeight);
+      } else if (state.canvasBg === 'parchment') {
+        eCtx.fillStyle = '#fbf8ef';
+        eCtx.fillRect(0, 0, cropWidth, cropHeight);
+      } else if (state.canvasBg === 'dark') {
+        eCtx.fillStyle = '#0f172a';
+        eCtx.fillRect(0, 0, cropWidth, cropHeight);
+      }
+
+      // Render Strokes shifted by bounding box offset
+      state.strokes.forEach(stroke => {
+        if (stroke.length === 0) return;
+
+        eCtx.save();
+        eCtx.beginPath();
+        eCtx.setLineDash([]);
+        eCtx.lineCap = 'round';
+        eCtx.lineJoin = 'round';
+        eCtx.strokeStyle = stroke[0].color;
+        eCtx.lineWidth = stroke[0].thickness;
+
+        if (stroke.length === 1) {
+          eCtx.arc(stroke[0].x - minX, stroke[0].y - minY, stroke[0].thickness / 2, 0, Math.PI * 2);
+          eCtx.fillStyle = stroke[0].color;
+          eCtx.fill();
+        } else {
+          eCtx.moveTo(stroke[0].x - minX, stroke[0].y - minY);
+
+          for (let i = 1; i < stroke.length - 1; i++) {
+            const midX = ((stroke[i].x + stroke[i + 1].x) / 2) - minX;
+            const midY = ((stroke[i].y + stroke[i + 1].y) / 2) - minY;
+            eCtx.quadraticCurveTo(stroke[i].x - minX, stroke[i].y - minY, midX, midY);
+          }
+          
+          eCtx.lineTo(stroke[stroke.length - 1].x - minX, stroke[stroke.length - 1].y - minY);
+          eCtx.stroke();
+        }
+
+        eCtx.restore();
+      });
+
+      return exportCanvas;
+    }
+
+    // Export Signature File Download
+    function exportSignature(format) {
+      if (state.strokes.length === 0) {
+        showToast('Please draw a signature first', 'fa-triangle-exclamation', 'text-amber-400');
+        return;
+      }
+
+      const exportCanvas = generateExportCanvas(format);
+      if (!exportCanvas) return;
+
+      const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const dataUrl = exportCanvas.toDataURL(mimeType, 0.95);
+
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `signature-${Date.now()}.${format}`;
+      downloadLink.href = dataUrl;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      showToast(`Exported as ${format.toUpperCase()}`, 'fa-circle-check', 'text-emerald-400');
+    }
+
+    // Copy Signature to Clipboard
+    async function copyToClipboard() {
+      if (state.strokes.length === 0) {
+        showToast('Please draw a signature first', 'fa-triangle-exclamation', 'text-amber-400');
+        return;
+      }
+
+      const exportCanvas = generateExportCanvas('png');
+      if (!exportCanvas) return;
+
+      exportCanvas.toBlob(async (blob) => {
+        try {
+          if (navigator.clipboard && window.ClipboardItem) {
+            const item = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.writeTextArea ? navigator.clipboard.write([item]) : navigator.clipboard.write([item]);
+            showToast('Signature copied to clipboard!', 'fa-copy', 'text-indigo-400');
+          } else {
+            showToast('Clipboard API not supported in browser', 'fa-triangle-exclamation', 'text-amber-400');
+          }
+        } catch (err) {
+          showToast('Failed to copy to clipboard', 'fa-xmark', 'text-red-400');
+        }
+      }, 'image/png');
+    }
+
+    // Live Document Preview Modal Functions
+    function openPreviewModal() {
+      const modal = document.getElementById('previewModal');
+      const modalImg = document.getElementById('modalSignatureImage');
+      const emptyNotice = document.getElementById('modalEmptyNotice');
+
+      if (state.strokes.length > 0) {
+        const exportCanvas = generateExportCanvas('png');
+        if (exportCanvas) {
+          modalImg.src = exportCanvas.toDataURL('image/png');
+          modalImg.classList.remove('hidden');
+          emptyNotice.classList.add('hidden');
+        }
+      } else {
+        modalImg.src = '';
+        modalImg.classList.add('hidden');
+        emptyNotice.classList.remove('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').classList.add('hidden');
+    }
+
+    // Toast Feedback Utility
+    let toastTimeout;
+    function showToast(msg, iconClass = 'fa-circle-check', iconColor = 'text-emerald-400') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+
+      toastMessage.textContent = msg;
+      toastIcon.className = `fa-solid ${iconClass} ${iconColor} text-lg`;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Utility: Debounce Handler
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+  </script>
+</body>
+</html>
